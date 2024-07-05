@@ -1,4 +1,7 @@
+// Import express and morgan
 const express = require('express')
+const morgan = require('morgan')
+
 const app = express()
 
 let persons = [
@@ -24,12 +27,23 @@ let persons = [
     }
 ]
 
+// use express json-parser
 app.use(express.json())
 
+// create and use morgan token and format for logging
+const personToken = (req, res) => {
+    return JSON.stringify(req.body)
+}
+
+morgan.token('person', personToken)
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :person'))
+
+// function to randomly generate a unique ID in range 0-99999999
 const generateId = () => {
     return String(Math.floor(Math.random() * 100000000))
 }
 
+// POST
 app.post('/api/persons', (request, response) => {
     const body = request.body
     const existingPerson = persons.find(person => person.name === body.name)
@@ -51,15 +65,17 @@ app.post('/api/persons', (request, response) => {
         name: body.name,
         number: body.number
     }
-    
+
     persons = persons.concat(newPerson)
     response.json(newPerson)
 })
 
+// GET all
 app.get('/api/persons', (request, response) => {
     response.json(persons)
 })
 
+// GET info
 app.get('/info', (request, response) => {
     response.send(`
         <p>Phonebook has info for ${persons.length} people</p>
@@ -67,6 +83,7 @@ app.get('/info', (request, response) => {
     `)
 })
 
+// GET person
 app.get('/api/persons/:id', (request, response) => {
     const id = request.params.id
     const person = persons.find(p => p.id === id)
@@ -78,6 +95,7 @@ app.get('/api/persons/:id', (request, response) => {
     }
 })
 
+// DELETE
 app.delete('/api/persons/:id', (request, response) => {
     const id = request.params.id
     persons = persons.filter(p => p.id !== id)
