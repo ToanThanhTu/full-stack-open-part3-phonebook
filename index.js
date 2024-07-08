@@ -1,6 +1,7 @@
 // Import express and morgan
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 
 const app = express()
 
@@ -26,6 +27,12 @@ let persons = [
         "number": "39-23-6423122"
     }
 ]
+
+// use cors to allow requests from other origins
+app.use(cors())
+
+// show static content with 'static' middleware
+app.use(express.static('dist'))
 
 // use express json-parser
 app.use(express.json())
@@ -103,7 +110,7 @@ app.delete('/api/persons/:id', (request, response) => {
     response.status(204).end()
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 })
