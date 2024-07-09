@@ -1,31 +1,37 @@
-// Import express and morgan
+// import dotenv to use .env environment variables file
+require('dotenv').config()
+// import express and morgan and cors
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 
+// define express app
 const app = express()
 
+// getting Person mongoose schema
+const Person = require('./modules/person')
+
 let persons = [
-    {
-        "id": "1",
-        "name": "Arto Hellas",
-        "number": "040-123456"
-    },
-    {
-        "id": "2",
-        "name": "Ada Lovelace",
-        "number": "39-44-5323523"
-    },
-    {
-        "id": "3",
-        "name": "Dan Abramov",
-        "number": "12-43-234345"
-    },
-    {
-        "id": "4",
-        "name": "Mary Poppendieck",
-        "number": "39-23-6423122"
-    }
+    // {
+    //     "id": "1",
+    //     "name": "Arto Hellas",
+    //     "number": "040-123456"
+    // },
+    // {
+    //     "id": "2",
+    //     "name": "Ada Lovelace",
+    //     "number": "39-44-5323523"
+    // },
+    // {
+    //     "id": "3",
+    //     "name": "Dan Abramov",
+    //     "number": "12-43-234345"
+    // },
+    // {
+    //     "id": "4",
+    //     "name": "Mary Poppendieck",
+    //     "number": "39-23-6423122"
+    // }
 ]
 
 // use cors to allow requests from other origins
@@ -45,64 +51,57 @@ const personToken = (req, res) => {
 morgan.token('person', personToken)
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :person'))
 
-// function to randomly generate a unique ID in range 0-99999999
-const generateId = () => {
-    return String(Math.floor(Math.random() * 100000000))
-}
-
-// POST
+// POST: use Person constructor function and 'save' operation to save to database
+// TO-DO: check whether there is already a person in the database with the same name
 app.post('/api/persons', (request, response) => {
     const body = request.body
-    const existingPerson = persons.find(person => person.name === body.name)
 
-    if (existingPerson) {
-        return response.status(400).json({
-            error: 'Person name already exists'
-        })
-    }
-
-    if (!body.name || !body.number || existingPerson) {
+    if (!body.name || !body.number) {
         return response.status(400).json({
             error: 'Person name or number is missing'
         })
     }
 
-    const newPerson = {
-        id: generateId(),
+    const newPerson = new Person({
         name: body.name,
         number: body.number
-    }
+    })
 
-    persons = persons.concat(newPerson)
-    response.json(newPerson)
+    newPerson.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 })
 
-// GET all
+// GET all: use find({}) to get the whole phonebook
 app.get('/api/persons', (request, response) => {
-    response.json(persons)
+    Person.find({}).then(persons => {
+        response.json(persons)
+    })
 })
 
-// GET info
+// GET info use find({}) to get the whole phonebook length
 app.get('/info', (request, response) => {
-    response.send(`
-        <p>Phonebook has info for ${persons.length} people</p>
-        <p>${Date()}</p>
-    `)
+    Person.find({}).then(persons => {
+        response.send(`
+            <p>Phonebook has info for ${persons.length} people</p>
+            <p>${Date()}</p>
+        `)
+    })
 })
 
-// GET person
+// GET person: use findById
 app.get('/api/persons/:id', (request, response) => {
-    const id = request.params.id
-    const person = persons.find(p => p.id === id)
-
-    if (person) {
-        response.json(person)
-    } else {
-        response.status(404).end()
-    }
+    Person
+        .findById(request.params.id)
+        .then(person => {
+            response.json(person)
+        })
+        .catch((error) => {
+            response.status(404).end()
+        })
 })
 
-// DELETE
+// DELETE: TO-DO
 app.delete('/api/persons/:id', (request, response) => {
     const id = request.params.id
     persons = persons.filter(p => p.id !== id)
@@ -110,7 +109,8 @@ app.delete('/api/persons/:id', (request, response) => {
     response.status(204).end()
 })
 
-const PORT = process.env.PORT || 3001
+// use PORT environment variable
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 })
