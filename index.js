@@ -29,24 +29,19 @@ morgan.token('person', personToken)
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :person'))
 
 // POST: use Person constructor function and 'save' operation to save to database
-// TO-DO: check whether there is already a person in the database with the same name
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const body = request.body
-
-    if (!body.name || !body.number) {
-        return response.status(400).json({
-            error: 'Person name or number is missing'
-        })
-    }
 
     const newPerson = new Person({
         name: body.name,
         number: body.number
     })
 
-    newPerson.save().then(savedPerson => {
-        response.json(savedPerson)
-    })
+    newPerson.save()
+        .then(savedPerson => {
+            response.json(savedPerson)
+        })
+        .catch(error => next(error))
 })
 
 // GET all: use find({}) to get the whole phonebook
@@ -96,8 +91,18 @@ app.put('/api/persons/:id', (request, response, next) => {
 
     // findByIdAndUpdate function which takes id and new person object
     // { new: true } - return the updated person rather than the original
-    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+    // runValidators: true - ensure validators are run for person update
+    // context: 'query' - ensures validators are executed in the context of the query
+    Person.findByIdAndUpdate(
+        request.params.id, 
+        person, 
+        { new: true, runValidators: true, context: 'query' }
+    )
         .then(updatedPerson => {
+            // Return error when updating an already deleted person
+            if (!updatedPerson) {
+                response.status(400).send({ error: `Information of ${person.name} has already been removed from the server` })
+            }
             response.json(updatedPerson)
         })
         .catch(error => next(error))
@@ -114,7 +119,10 @@ const errorHandler = (error, request, response, next) => {
 
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'malformatted id' })
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).send({ error: error.message })
     }
+
     next(error)
 }
 
