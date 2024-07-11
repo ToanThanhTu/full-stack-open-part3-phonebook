@@ -21,8 +21,8 @@ app.use(express.static('dist'))
 app.use(express.json())
 
 // create and use morgan token and format for logging
-const personToken = (req, res) => {
-    return JSON.stringify(req.body)
+const personToken = (request, _response) => {
+    return JSON.stringify(request.body)
 }
 
 morgan.token('person', personToken)
@@ -45,14 +45,14 @@ app.post('/api/persons', (request, response, next) => {
 })
 
 // GET all: use find({}) to get the whole phonebook
-app.get('/api/persons', (request, response) => {
+app.get('/api/persons', (_request, response) => {
     Person.find({}).then(persons => {
         response.json(persons)
     })
 })
 
 // GET info use find({}) to get the whole phonebook length
-app.get('/info', (request, response) => {
+app.get('/info', (_request, response) => {
     Person.find({}).then(persons => {
         response.send(`
             <p>Phonebook has info for ${persons.length} people</p>
@@ -74,7 +74,7 @@ app.get('/api/persons/:id', (request, response, next) => {
 // DELETE: delete a person by id
 app.delete('/api/persons/:id', (request, response, next) => {
     Person.findByIdAndDelete(request.params.id)
-        .then(result => {
+        .then(_result => {
             response.status(204).end()
         })
         .catch(error => next(error))
@@ -94,8 +94,8 @@ app.put('/api/persons/:id', (request, response, next) => {
     // runValidators: true - ensure validators are run for person update
     // context: 'query' - ensures validators are executed in the context of the query
     Person.findByIdAndUpdate(
-        request.params.id, 
-        person, 
+        request.params.id,
+        person,
         { new: true, runValidators: true, context: 'query' }
     )
         .then(updatedPerson => {
@@ -109,12 +109,12 @@ app.put('/api/persons/:id', (request, response, next) => {
 })
 
 // Define unknown endpoint
-const unknownEndpoint = (request, response) => {
+const unknownEndpoint = (_request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 }
 
 // Define error handler middleware
-const errorHandler = (error, request, response, next) => {
+const errorHandler = (error, _request, response, next) => {
     console.error(error.message)
 
     if (error.name === 'CastError') {
@@ -133,5 +133,5 @@ app.use(errorHandler)
 // use PORT environment variable
 const PORT = process.env.PORT
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`)
 })
