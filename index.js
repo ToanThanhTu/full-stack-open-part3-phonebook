@@ -9,7 +9,7 @@ const cors = require('cors')
 const app = express()
 
 // getting Person mongoose schema
-const Person = require('./modules/person')
+const Person = require('./models/person')
 
 // use cors to allow requests from other origins
 app.use(cors())
